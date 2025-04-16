@@ -1,0 +1,70 @@
+﻿@using O_Dzhumyk_MefistoTheatre.ViewModels.Posts
+@model PostFormViewModel
+@{
+    ViewData["Title"] = "Create New Post";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<hr />
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="Create" method="post">
+            @* Action points to Create *@
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+
+            <div class="form-group mb-3">
+                <label asp-for="Title" class="control-label"></label>
+                <input asp-for="Title" class="form-control" />
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Content" class="control-label"></label>
+                <textarea asp-for="Content" class="form-control" rows="10"></textarea>
+                <span asp-validation-for="Content" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="CategorySelection" class="control-label"></label>
+                <select asp-for="CategorySelection" class="form-control" asp-items="Model.Categories">
+                    @* Options populated from Model.Categories *@
+                </select>
+                <span asp-validation-for="CategorySelection" class="text-danger"></span>
+            </div>
+
+            @* Conditionally display the New Category Name input *@
+            <div class="form-group mb-3" id="newCategorySection" style="display: none;">
+                <label asp-for="NewCategoryName" class="control-label"></label>
+                <input asp-for="NewCategoryName" class="form-control" />
+                <span asp-validation-for="NewCategoryName" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mt-4">
+                <button type="submit" class="btn btn-primary">Create Post</button> @* Static button text *@
+                <a asp-action="Index" asp-controller="Posts" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function () {
+            function toggleNewCategory() {
+                if ($('#CategorySelection').val() === 'new') {
+                    $('#newCategorySection').show();
+                } else {
+                    $('#newCategorySection').hide();
+                }
+            }
+            toggleNewCategory();
+            $('#CategorySelection').change(toggleNewCategory);
+        });
+    </script>
+}

@@ -1,0 +1,146 @@
+﻿@using O_Dzhumyk_MefistoTheatre.ViewModels.Home
+@model BlogViewModel
+
+@{
+    ViewData["Title"] = Model.PageTitle;
+    // Determine how many page links to show around the current page
+    int maxPagesToShow = 5; // Show up to 5 page number links
+    int startPage = Math.Max(1, Model.CurrentPage - (maxPagesToShow / 2));
+    int endPage = Math.Min(Model.TotalPages, startPage + maxPagesToShow - 1);
+
+    // Adjust startPage if endPage hits the limit and we can show more pages at the beginning
+    if (endPage == Model.TotalPages && Model.TotalPages >= maxPagesToShow)
+    {
+        startPage = Math.Max(1, endPage - maxPagesToShow + 1);
+    }
+}
+
+<div class="container py-4 py-lg-5">
+    <h1 class="mb-4 fw-bold">@Model.PageTitle</h1>
+
+    @if (!Model.Posts.Any())
+    {
+        <div class="alert alert-info">There are no posts to display yet.</div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var post in Model.Posts)
+            {
+                <div class="col-md-6 col-lg-4 d-flex">
+                    @* Added d-flex to make card take full height of column *@
+                    <div class="card shadow-sm flex-fill">
+                        @* Changed h-100 to flex-fill *@
+                        <div class="card-body d-flex flex-column">
+                            <h4 class="card-title mb-2 fs-5 fw-semibold">
+                                <a asp-controller="Posts" asp-action="Details" asp-route-id="@post.Id" class="text-decoration-none text-dark stretched-link">
+                                    @post.Title
+                                </a>
+                            </h4>
+                            <a asp-controller="Home" asp-action="Index" asp-route-category="@post.CategoryName"
+                               class="badge bg-primary bg-opacity-75 text-white mb-2 align-self-start text-decoration-none">
+                                <i class="bi bi-tag me-1"></i>@post.CategoryName
+                            </a>
+                            <p class="card-text post-excerpt text-muted small flex-grow-1">
+                                @Html.Raw(post.Content)
+                            </p>
+                        </div>
+                        <div class="card-footer bg-white border-top-0 text-muted small pt-0 pb-2 px-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="d-inline-flex align-items-center">
+                                    <i class="bi bi-person-fill me-1"></i> @post.AuthorFullName
+                                </span>
+                                <span class="d-inline-flex align-items-center">
+                                    <i class="bi bi-calendar3 me-1"></i> @post.CreatedAt.ToString("MMM d, yyyy")
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* --- Pagination Controls --- *@
+        @if (Model.TotalPages > 1)
+        {
+            <nav aria-label="Page navigation" class="mt-5">
+                <ul class="pagination justify-content-center flex-wrap">
+
+                    @* Previous Button *@
+                    <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-pageNumber="@(Model.CurrentPage - 1)" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+
+                    @if (startPage > 1)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" asp-action="Index" asp-route-pageNumber="1">1</a>
+                        </li>
+                        @if (startPage > 2)
+                        {
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        }
+                    }
+
+                    @* Page Number Links *@
+                    @for (int i = startPage; i <= endPage; i++)
+                    {
+                        <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-pageNumber="@i">@i</a>
+                        </li>
+                    }
+
+                    @if (endPage < Model.TotalPages)
+                    {
+                        @if (endPage < Model.TotalPages - 1)
+                        {
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        }
+                        <li class="page-item">
+                            <a class="page-link" asp-action="Index" asp-route-pageNumber="@Model.TotalPages">@Model.TotalPages</a>
+                        </li>
+                    }
+
+                    @* Next Button *@
+                    <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-pageNumber="@(Model.CurrentPage + 1)" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+
+                </ul>
+            </nav>
+        }
+        @* --- End Pagination Controls --- *@
+
+    } @* End else block for posts exist *@</div>
+
+<style>
+    .post-excerpt {
+        display: -webkit-box;
+        -webkit-line-clamp: 3; 
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-height: 60px; 
+    }
+
+    .card-title a:hover {
+        color: var(--bs-primary) !important;
+    }
+
+    .card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important; 
+        }
+
+    .pagination {
+        gap: 0.25rem; 
+    }
+</style>

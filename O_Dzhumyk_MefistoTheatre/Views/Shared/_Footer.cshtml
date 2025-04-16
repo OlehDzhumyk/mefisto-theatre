@@ -1,0 +1,13 @@
+﻿@* Footer using Bootstrap 5 classes - ensure it's placed correctly in _Layout *@
+<footer class="footer border-top text-muted bg-white py-3">
+    @* Removed mt-auto as flexbox on body handles positioning *@
+    <div class="container text-center">
+        @* Centered content *@
+        <p class="mb-0 small">
+            &copy; @DateTime.Now.Year - MefistoTheatre Blog. All Rights Reserved.
+            @* Example links - uncomment and update if needed *@
+            @* | <a asp-controller="Home" asp-action="Privacy" class="text-muted text-decoration-none">Privacy Policy</a>
+               | <a asp-controller="Home" asp-action="Terms" class="text-muted text-decoration-none">Terms of Service</a> *@
+        </p>
+    </div>
+</footer>

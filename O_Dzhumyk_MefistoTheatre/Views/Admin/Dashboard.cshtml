@@ -1,0 +1,95 @@
+﻿@using O_Dzhumyk_MefistoTheatre.ViewModels.Admin
+@using System.Security.Claims
+@model AdminDashboardViewModel
+
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+}
+
+<div class="container mt-5">
+    <h1 class="mb-4">Admin Dashboard</h1>
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">User Management</h4>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover m-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Roles</th>
+                        <th>Status</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var userWithRoles in Model.Users)
+                    {
+                        var user = userWithRoles.User;
+                        var roles = userWithRoles.Roles;
+                        bool isCurrentUser = user.Id == currentUserId;
+                        <tr>
+                            <td>@user.FullName</td>
+                            <td>@user.Email</td>
+                            <td>@string.Join(", ", roles)</td>
+                            <td>
+                                @if (user.IsBanned)
+                                {
+                                    <span class="text-danger">Banned</span>
+                                }
+                                else
+                                {
+                                    <span class="text-success">Active</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @* Do not allow admin to act on themselves *@
+                                @if (!isCurrentUser)
+                                {
+                                    @if (user.IsBanned)
+                                    {
+                                        <form asp-action="UnbanUser" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userId" value="@user.Id" />
+                                            <button type="submit" class="btn btn-success btn-sm" title="Unban User">Unban</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="BanUser" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userId" value="@user.Id" />
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Ban User" onclick="return confirm('Are you sure you want to ban this user?');">Ban</button>
+                                        </form>
+                                    }
+                                    @* Promotion buttons *@
+                                    @if (!roles.Contains("Staff"))
+                                    {
+                                        <form asp-action="PromoteUser" method="post" class="d-inline ms-1">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userId" value="@user.Id" />
+                                            <input type="hidden" name="role" value="Staff" />
+                                            <button type="submit" class="btn btn-primary btn-sm" title="Promote to Staff">To Staff</button>
+                                        </form>
+                                    }
+                                    @if (!roles.Contains("Admin"))
+                                    {
+                                        <form asp-action="PromoteUser" method="post" class="d-inline ms-1">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userId" value="@user.Id" />
+                                            <input type="hidden" name="role" value="Admin" />
+                                            <button type="submit" class="btn btn-primary btn-sm" title="Promote to Admin">To Admin</button>
+                                        </form>
+                                    }
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
