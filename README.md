@@ -105,3 +105,7 @@ O_Dzhumyk_MefistoTheatre.Tests/   xUnit unit and integration tests
 - Add a rich-text editor for posts. At the moment staff type raw HTML into a textarea.
 - Add search, and show a post count next to each category.
 - Add email confirmation and password reset. Identity supports both, but they need an email sender.
+
+## Licence
+
+[MIT](LICENSE)
