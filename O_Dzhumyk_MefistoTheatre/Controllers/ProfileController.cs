@@ -32,7 +32,7 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
             {
                 Id = user.Id,
                 FullName = user.FullName,
-                Email = user.Email,
+                Email = user.Email ?? string.Empty,
                 IsBanned = user.IsBanned
             };
 
@@ -66,7 +66,7 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
             {
                 Id = user.Id,
                 FullName = user.FullName,
-                Email = user.Email,
+                Email = user.Email ?? string.Empty,
                 IsBanned = user.IsBanned
             };
 
@@ -87,7 +87,7 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
             var model = new EditProfileViewModel
             {
                 FullName = user.FullName,
-                Email = user.Email
+                Email = user.Email ?? string.Empty
             };
 
             return View(model);

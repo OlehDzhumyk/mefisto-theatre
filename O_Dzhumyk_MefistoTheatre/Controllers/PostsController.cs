@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using O_Dzhumyk_MefistoTheatre.Data;
 using O_Dzhumyk_MefistoTheatre.Models;
+using O_Dzhumyk_MefistoTheatre.Services;
 using O_Dzhumyk_MefistoTheatre.ViewModels.Posts; 
 using System.ComponentModel.DataAnnotations;
 
@@ -17,31 +18,20 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<User> _userManager;
 
-        public PostsController(ApplicationDbContext context, UserManager<User> userManager)
+        private readonly PostContentFormatter _formatter;
+
+        public PostsController(ApplicationDbContext context, UserManager<User> userManager, PostContentFormatter formatter)
         {
             _context = context;
             _userManager = userManager;
+            _formatter = formatter;
         }
 
+        // The post list lives on the home page; this keeps old /Posts?category=... links working.
         [AllowAnonymous]
         [HttpGet]
-        public async Task<IActionResult> Index(string category)
-        {
-            var postsQuery = _context.Posts
-                .Include(p => p.Author)
-                .Include(p => p.Category)
-                .OrderByDescending(p => p.CreatedAt)
-                .AsQueryable();
-
-            if (!string.IsNullOrEmpty(category))
-            {
-                postsQuery = postsQuery.Where(p => p.Category.Name == category);
-                ViewData["CurrentCategory"] = category;
-            }
-
-            var posts = await postsQuery.ToListAsync();
-            return View(posts);
-        }
+        public IActionResult Index(string? category) =>
+            RedirectToAction("Index", "Home", new { category });
 
         [AllowAnonymous]
         [HttpGet("Posts/Details/{id:int}")]
@@ -69,7 +59,7 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
             {
                 Id = post.Id,
                 Title = post.Title,
-                Content = post.Content,
+                Content = _formatter.ToSafeHtml(post.Content),
                 AuthorFullName = post.Author?.FullName ?? "Unknown Author",
                 AuthorId = post.AuthorId,
                 CategoryName = post.Category?.Name ?? "Uncategorized",
@@ -85,7 +75,7 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
                                  AuthorId = c.AuthorId ?? string.Empty,
                                  CreatedAt = c.CreatedAt,
                                  // Check if user is Admin OR the comment author
-                                 CanDelete = User.IsInRole("Admin") || (currentUser != null && c.AuthorId == currentUser.Id)
+                                 CanDelete = CanDeleteComment(c, currentUser)
                              }).ToList(),
                 CanAddComment = canAddComment,
                 IsUserAuthenticated = User.Identity?.IsAuthenticated == true,
@@ -360,7 +350,7 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
         }
 
         [HttpPost("Posts/DeleteComment/{id:int}")]
-        [Authorize(Roles = "Staff,Admin")]
+        [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteComment(int id, [Bind("postId")] DeleteCommentInputModel input)
         {
@@ -386,7 +376,7 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
             if (currentUser == null) { return Challenge(); }
 
             // Authorization: Admin or comment author
-            if (!User.IsInRole("Admin") && comment.AuthorId != currentUser.Id)
+            if (!CanDeleteComment(comment, currentUser))
             {
                 TempData["ErrorMessage"] = "You are not authorized to delete this comment.";
                 return RedirectToAction(nameof(Details), new { id = comment.PostId });
@@ -401,6 +391,11 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
 
 
         // --- Private Helper Methods ---
+
+        // Moderators (Admin, Staff) can remove any comment; everyone else only their own.
+        private bool CanDeleteComment(Comment comment, User? currentUser) =>
+            currentUser != null &&
+            (User.IsInRole("Admin") || User.IsInRole("Staff") || comment.AuthorId == currentUser.Id);
 
         private async Task<(int? categoryId, bool isValid)> ResolveCategoryIdAsync(PostFormViewModel model)
         {

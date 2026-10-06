@@ -17,7 +17,7 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
         }
 
         // GET: /Auth/Register
-        public IActionResult Register(string returnUrl = null)
+        public IActionResult Register(string? returnUrl = null)
         {
             // Pass return URL to the view in case of redirection after registration
             ViewData["ReturnUrl"] = returnUrl;
@@ -27,7 +27,7 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
         // POST: /Auth/Register
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(RegisterViewModel model, string returnUrl = null)
+        public async Task<IActionResult> Register(RegisterViewModel model, string? returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
             if (ModelState.IsValid)
@@ -45,6 +45,9 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
 
                 if (result.Succeeded)
                 {
+                    // Everyone who signs up is a member; staff and admins are promoted from the dashboard
+                    await _userManager.AddToRoleAsync(user, "Member");
+
                     // Sign in the user after successful registration
                     await _signInManager.SignInAsync(user, isPersistent: false);
                     // Redirect to the provided return URL if it's local, otherwise to Home/Index
@@ -63,7 +66,7 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
         }
 
         // GET: /Auth/Login
-        public IActionResult Login(string returnUrl = null)
+        public IActionResult Login(string? returnUrl = null)
         {
             // Pass return URL to the view for post-login redirection
             ViewData["ReturnUrl"] = returnUrl;
@@ -73,7 +76,7 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
         // POST: /Auth/Login
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model, string returnUrl = null)
+        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
             if (ModelState.IsValid)
@@ -83,7 +86,7 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
                     model.Email,
                     model.Password,
                     model.RememberMe,
-                    lockoutOnFailure: false
+                    lockoutOnFailure: true
                 );
                 if (result.Succeeded)
                 {
@@ -93,7 +96,9 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
                     return RedirectToAction("Index", "Home");
                 }
                 // Add an error if login attempt failed
-                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                ModelState.AddModelError(string.Empty, result.IsLockedOut
+                    ? "Too many failed attempts. Please try again in a few minutes."
+                    : "Invalid login attempt.");
             }
             return View(model);
         }
@@ -108,43 +113,7 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
             return RedirectToAction("Index", "Home");
         }
 
-        // GET: /Auth/Delete
-        public async Task<IActionResult> Delete()
-        {
-            // Retrieve the currently signed-in user
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return NotFound();
-            }
-            return View();
-        }
-
-        // POST: /Auth/DeleteConfirmed
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed()
-        {
-            // Retrieve the currently signed-in user for deletion
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return NotFound();
-            }
-            // Delete the user
-            var result = await _userManager.DeleteAsync(user);
-            if (result.Succeeded)
-            {
-                // Sign out the user after deletion and redirect to Home
-                await _signInManager.SignOutAsync();
-                return RedirectToAction("Index", "Home");
-            }
-            // If deletion fails, add errors to the ModelState and return to the Delete view
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Description);
-            }
-            return View("Delete");
-        }
+        // GET: /Auth/AccessDenied (the cookie middleware sends users here on a 403)
+        public IActionResult AccessDenied() => View();
     }
 }

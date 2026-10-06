@@ -2,75 +2,74 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using O_Dzhumyk_MefistoTheatre.Data;
 using O_Dzhumyk_MefistoTheatre.Models;
+using O_Dzhumyk_MefistoTheatre.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure the DbContext to use SQL Server with the connection string from configuration.
+// The connection string comes from appsettings.json locally and from ConnectionStrings__DefaultConnection in Docker.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configure Identity with custom password and sign-in settings.
-builder.Services.AddDefaultIdentity<User>(options =>
+builder.Services.AddIdentity<User, IdentityRole>(options =>
 {
+    // Same key length the original schema was created with (AddDefaultIdentity sets it implicitly)
+    options.Stores.MaxLengthForKeys = 128;
     options.SignIn.RequireConfirmedAccount = false;
-    options.Password.RequireDigit = false;
-    options.Password.RequireLowercase = false;
-    options.Password.RequireUppercase = false;
+    options.User.RequireUniqueEmail = true;
+    options.Password.RequiredLength = 8;
     options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 1;
 })
-.AddRoles<IdentityRole>()
-.AddEntityFrameworkStores<ApplicationDbContext>();
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    // Set the custom login path
     options.LoginPath = "/Auth/Login";
-    // Set other paths, for example:
     options.LogoutPath = "/Auth/Logout";
     options.AccessDeniedPath = "/Auth/AccessDenied";
 });
 
+builder.Services.AddControllersWithViews();
+builder.Services.AddSingleton<PostContentFormatter>();
 
 var app = builder.Build();
 
-// Configure middleware for error handling and security for non-development environments.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
+    app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection(); // Redirect HTTP requests to HTTPS.
-app.UseStaticFiles();      // Serve static files.
-app.UseRouting();          // Add routing middleware.
-app.UseAuthentication();   // Enable authentication.
-app.UseAuthorization();    // Enable authorization.
+app.UseStatusCodePagesWithReExecute("/Home/StatusCode/{0}");
+app.UseStaticFiles();
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 
-// Define the default controller route pattern.
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Map Razor Pages, if any.
-app.MapRazorPages();
-
-// Seed the database with initial data (roles, admin user, etc.)
+// Bring the database schema up to date, then add roles, demo users and demo posts if they're missing.
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    try
-    {
-        var context = services.GetRequiredService<ApplicationDbContext>();
-        var userManager = services.GetRequiredService<UserManager<User>>();
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        await SeedData.InitializeAsync(context, userManager, roleManager);
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while seeding the database.");
-    }
+    var context = services.GetRequiredService<ApplicationDbContext>();
+
+    // SQL Server uses the migrations; the tests run on SQLite, which builds the schema from the model.
+    if (context.Database.IsSqlServer())
+        await context.Database.MigrateAsync();
+    else
+        await context.Database.EnsureCreatedAsync();
+
+    await SeedData.InitializeAsync(
+        context,
+        services.GetRequiredService<UserManager<User>>(),
+        services.GetRequiredService<RoleManager<IdentityRole>>());
 }
 
 app.Run();
+
+// Lets the integration tests start the app with WebApplicationFactory<Program>.
+public partial class Program { }

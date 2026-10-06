@@ -12,7 +12,7 @@ namespace O_Dzhumyk_MefistoTheatre.ViewModels.Auth
 
         // User's chosen password. Required, with length constraints. Data type hint for UI.
         [Required]
-        [StringLength(100, MinimumLength = 6)]
+        [StringLength(100, MinimumLength = 8)]
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty; // Initialize
 

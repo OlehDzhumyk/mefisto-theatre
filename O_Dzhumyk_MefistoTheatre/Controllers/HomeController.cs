@@ -1,82 +1,81 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using O_Dzhumyk_MefistoTheatre.Data;
+using O_Dzhumyk_MefistoTheatre.Services;
 using O_Dzhumyk_MefistoTheatre.ViewModels.Home;
 
-namespace MefistoTheatre.Controllers
+namespace O_Dzhumyk_MefistoTheatre.Controllers
 {
     public class HomeController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly PostContentFormatter _formatter;
         private const int DefaultPageSize = 15;
 
-        public HomeController(ApplicationDbContext context)
+        public HomeController(ApplicationDbContext context, PostContentFormatter formatter)
         {
             _context = context;
+            _formatter = formatter;
         }
 
         // GET: /Home/Index or /?pageNumber=2
-        public async Task<IActionResult> Index(int pageNumber = 1)
+        public async Task<IActionResult> Index(string? category, int pageNumber = 1)
         {
-            // Ensure the page number is at least 1.
             if (pageNumber < 1)
             {
                 pageNumber = 1;
             }
 
-            int pageSize = DefaultPageSize;
+            var query = _context.Posts.AsNoTracking();
+            if (!string.IsNullOrWhiteSpace(category))
+            {
+                query = query.Where(p => p.Category.Name == category);
+            }
 
-            // Base query to fetch posts with related Category and Author data.
-            var query = _context.Posts
-                              .Include(p => p.Category)
-                              .Include(p => p.Author)
-                              .OrderByDescending(p => p.CreatedAt)
-                              .AsNoTracking();
-
-            // Get total count for pagination.
             var totalItemCount = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalItemCount / (double)DefaultPageSize);
 
-            // Project posts to the view model with content truncation.
-            var postViewModelsQuery = query
-                .Select(post => new PostViewModel
+            if (pageNumber > totalPages && totalPages > 0)
+            {
+                return RedirectToAction(nameof(Index), new { category, pageNumber = totalPages });
+            }
+
+            var posts = await query
+                .OrderByDescending(p => p.CreatedAt)
+                .Skip((pageNumber - 1) * DefaultPageSize)
+                .Take(DefaultPageSize)
+                .Select(post => new
                 {
-                    Id = post.Id,
-                    Title = post.Title,
-                    Content = post.Content.Length > 200
-                              ? post.Content.Substring(0, 200) + "..."
-                              : post.Content,
-                    AuthorFullName = post.Author != null ? post.Author.FullName : "Unknown Author",
-                    CategoryName = post.Category != null ? post.Category.Name : "Uncategorized",
-                    CreatedAt = post.CreatedAt,
-                });
-
-            // Apply pagination.
-            var paginatedPosts = await postViewModelsQuery
-                                       .Skip((pageNumber - 1) * pageSize)
-                                       .Take(pageSize)
-                                       .ToListAsync();
-
-            // Calculate total pages.
-            var totalPages = (int)Math.Ceiling(totalItemCount / (double)pageSize);
+                    post.Id,
+                    post.Title,
+                    post.Content,
+                    AuthorFullName = post.Author.FullName,
+                    CategoryName = post.Category.Name,
+                    post.CreatedAt,
+                })
+                .ToListAsync();
 
             var viewModel = new BlogViewModel
             {
-                Posts = paginatedPosts,
-                PageTitle = "Latest News & Reviews",
+                // Excerpts are made in memory: cutting HTML in SQL could leave half a tag behind
+                Posts = posts.Select(post => new PostViewModel
+                {
+                    Id = post.Id,
+                    Title = post.Title,
+                    Content = _formatter.ToExcerpt(post.Content),
+                    AuthorFullName = post.AuthorFullName,
+                    CategoryName = post.CategoryName,
+                    CreatedAt = post.CreatedAt,
+                }).ToList(),
+                PageTitle = string.IsNullOrWhiteSpace(category) ? "Latest News & Reviews" : category,
+                Category = category,
                 CurrentPage = pageNumber,
                 TotalPages = totalPages
             };
 
-            // Redirect to the last page if the requested page exceeds total pages.
-            if (pageNumber > totalPages && totalPages > 0)
-            {
-                return RedirectToAction(nameof(Index), new { pageNumber = totalPages });
-            }
-
             return View(viewModel);
         }
 
-        // GET: /Home/About
         public IActionResult About()
         {
             // Static content for About page.
@@ -106,5 +105,11 @@ namespace MefistoTheatre.Controllers
 
             return View(viewModel);
         }
+
+        [Route("Home/Error")]
+        public IActionResult Error() => View("Error", 500);
+
+        [Route("Home/StatusCode/{code:int}")]
+        public IActionResult HttpStatus(int code) => View("Error", code);
     }
 }

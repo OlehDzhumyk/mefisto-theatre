@@ -17,6 +17,10 @@
 
 <div class="container py-4 py-lg-5">
     <h1 class="mb-4 fw-bold">@Model.PageTitle</h1>
+    @if (Model.Category != null)
+    {
+        <p class="mb-4"><a asp-action="Index" class="text-decoration-none">&larr; All posts</a></p>
+    }
 
     @if (!Model.Posts.Any())
     {
@@ -42,7 +46,7 @@
                                 <i class="bi bi-tag me-1"></i>@post.CategoryName
                             </a>
                             <p class="card-text post-excerpt text-muted small flex-grow-1">
-                                @Html.Raw(post.Content)
+                                @post.Content
                             </p>
                         </div>
                         <div class="card-footer bg-white border-top-0 text-muted small pt-0 pb-2 px-3">
@@ -68,7 +72,7 @@
 
                     @* Previous Button *@
                     <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
-                        <a class="page-link" asp-action="Index" asp-route-pageNumber="@(Model.CurrentPage - 1)" aria-label="Previous">
+                        <a class="page-link" asp-action="Index" asp-route-category="@Model.Category" asp-route-pageNumber="@(Model.CurrentPage - 1)" aria-label="Previous">
                             <span aria-hidden="true">&laquo;</span>
                         </a>
                     </li>
@@ -76,7 +80,7 @@
                     @if (startPage > 1)
                     {
                         <li class="page-item">
-                            <a class="page-link" asp-action="Index" asp-route-pageNumber="1">1</a>
+                            <a class="page-link" asp-action="Index" asp-route-category="@Model.Category" asp-route-pageNumber="1">1</a>
                         </li>
                         @if (startPage > 2)
                         {
@@ -88,7 +92,7 @@
                     @for (int i = startPage; i <= endPage; i++)
                     {
                         <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
-                            <a class="page-link" asp-action="Index" asp-route-pageNumber="@i">@i</a>
+                            <a class="page-link" asp-action="Index" asp-route-category="@Model.Category" asp-route-pageNumber="@i">@i</a>
                         </li>
                     }
 
@@ -99,13 +103,13 @@
                             <li class="page-item disabled"><span class="page-link">...</span></li>
                         }
                         <li class="page-item">
-                            <a class="page-link" asp-action="Index" asp-route-pageNumber="@Model.TotalPages">@Model.TotalPages</a>
+                            <a class="page-link" asp-action="Index" asp-route-category="@Model.Category" asp-route-pageNumber="@Model.TotalPages">@Model.TotalPages</a>
                         </li>
                     }
 
                     @* Next Button *@
                     <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
-                        <a class="page-link" asp-action="Index" asp-route-pageNumber="@(Model.CurrentPage + 1)" aria-label="Next">
+                        <a class="page-link" asp-action="Index" asp-route-category="@Model.Category" asp-route-pageNumber="@(Model.CurrentPage + 1)" aria-label="Next">
                             <span aria-hidden="true">&raquo;</span>
                         </a>
                     </li>

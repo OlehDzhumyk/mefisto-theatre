@@ -13,7 +13,7 @@ namespace O_Dzhumyk_MefistoTheatre.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20250404122808_initial")]
-    partial class initial
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

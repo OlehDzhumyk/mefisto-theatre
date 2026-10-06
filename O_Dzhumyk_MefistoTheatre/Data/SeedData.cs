@@ -14,7 +14,7 @@ public static class SeedData
         UserManager<User> userManager,
         RoleManager<IdentityRole> roleManager)
     {
-        await context.Database.MigrateAsync();
+
 
         // --- 1. Create Roles ---
         var roles = new[] { "Admin", "Staff", "Member" };

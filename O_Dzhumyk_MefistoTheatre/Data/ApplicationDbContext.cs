@@ -11,8 +11,6 @@ namespace O_Dzhumyk_MefistoTheatre.Data
         public DbSet<Post> Posts { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Category> Categories { get; set; }
-        public DbSet<Member> Members { get; set; } // Definition/Use of Member/Staff still unclear from provided code
-        public DbSet<Staff> Staffs { get; set; }   // Definition/Use of Member/Staff still unclear from provided code
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -25,17 +23,13 @@ namespace O_Dzhumyk_MefistoTheatre.Data
                 .HasForeignKey(c => c.PostId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // --- CORRECTED Post -> Author Relationship Configuration ---
+            // Deleting a user who has written posts is blocked rather than deleting their posts
             modelBuilder.Entity<Post>()
-                .HasOne(p => p.Author)           // Post has one Author (now correctly type User)
-                .WithMany(u => u.Posts)         // User has many Posts (using the new inverse property)
-                .HasForeignKey(p => p.AuthorId)  // Foreign key in Post table
-                .IsRequired()                    // Ensure AuthorId is required
-                .OnDelete(DeleteBehavior.Restrict); // Prevent deleting a User if they have Posts
-            // --- End Correction ---
-
-            // Consider configuring other relationships explicitly for clarity if needed
-            // e.g., Post <-> Category, Comment <-> User, Comment <-> Post
+                .HasOne(p => p.Author)
+                .WithMany(u => u.Posts)
+                .HasForeignKey(p => p.AuthorId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

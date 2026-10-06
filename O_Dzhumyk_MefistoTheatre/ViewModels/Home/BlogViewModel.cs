@@ -6,6 +6,8 @@ namespace O_Dzhumyk_MefistoTheatre.ViewModels.Home
     {
         // The list of posts to display on the current page. Uses PostViewModel for display data.
         public List<PostViewModel> Posts { get; set; } = new List<PostViewModel>();
+        // The category the list is filtered by, or null for all posts.
+        public string? Category { get; set; }
         // The title for the Blog page.
         public string PageTitle { get; set; } = string.Empty;
         // The current page number being displayed.

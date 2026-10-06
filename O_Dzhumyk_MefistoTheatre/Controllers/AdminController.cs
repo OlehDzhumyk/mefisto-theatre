@@ -84,20 +84,16 @@ namespace O_Dzhumyk_MefistoTheatre.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> PromoteUser(string userId, string role)
         {
-            // Find the user by their ID
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user != null)
+            // The dashboard only offers these two; anything else would be a tampered form
+            if (role is not ("Staff" or "Admin"))
             {
-                // Only add the user to the role if they are not already in it
-                if (!await _userManager.IsInRoleAsync(user, role))
-                {
-                    var result = await _userManager.AddToRoleAsync(user, role);
-                    // Optionally, handle the failure of role assignment if necessary
-                    if (!result.Succeeded)
-                    {
-                        // Error handling can be added here
-                    }
-                }
+                return BadRequest("Unknown role.");
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user != null && !await _userManager.IsInRoleAsync(user, role))
+            {
+                await _userManager.AddToRoleAsync(user, role);
             }
             return RedirectToAction(nameof(Dashboard));
         }
